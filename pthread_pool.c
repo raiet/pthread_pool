@@ -5,7 +5,7 @@
  这二个线程池中没有设置任务队列，因为实际项目中的任务都是已经保存的，不会丢失，线程的主要任务就是处理任务，并删除任务，所以没有必要设置任务队列
 
  */
-#include"thread_pool.h"
+#include"pthread_pool.h"
 
 
 tp_thread_info* malloc_pthread(int pthread_num);
@@ -183,24 +183,26 @@ int tp_add_job(tp_thread_pool *this, tp_work *worker, tp_work_arg *arg){
 	tp_thread_info* thread_info,*new_thread;
 
 repeat:	
-	for(thread_info = this->thread_info;thread_info!=NULL;thread_info = thread_info->next){
-		pthread_mutex_lock(&thread_info->thread_lock);
-		if(thread_info->status == 2){
-			printf("thread idle, thread id is %lu\n", thread_info->thread_id);
-			//设置线程状态
-		  	thread_info->status = 1;
-			this->idle_th_num--;
-			pthread_mutex_unlock(&thread_info->thread_lock);
-			
-			thread_info->th_work = worker;
-			thread_info->th_arg = arg;
-			//唤醒该线程
-			pthread_cond_signal(&thread_info->thread_cond);
-            return;
-	    }
-        pthread_mutex_unlock(&thread_info->thread_lock);
-	}//end of for
-
+//	for(i = 0;i<3;i++){//需要遍历三遍链表，防止过快的创建太多线程
+		for(thread_info = this->thread_info;thread_info!=NULL;thread_info = thread_info->next){
+			if(pthread_mutex_lock(&thread_info->thread_lock)==0){
+				if(thread_info->status == 2){
+					printf("thread idle, thread id is %lu\n", thread_info->thread_id);
+					//设置线程状态
+		  			thread_info->status = 1;
+					this->idle_th_num--;
+					pthread_mutex_unlock(&thread_info->thread_lock);
+					
+					thread_info->th_work = worker;
+					thread_info->th_arg = arg;
+					//唤醒该线程
+					pthread_cond_signal(&thread_info->thread_cond);
+            		return;
+	    		}
+        	pthread_mutex_unlock(&thread_info->thread_lock);
+			}
+		}//end of for
+//	}
 	//如果没有空闲线程考虑增加线程
 
 	pthread_mutex_lock(&this->tp_lock);

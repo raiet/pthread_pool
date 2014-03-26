@@ -1,11 +1,12 @@
-#include "thread_pool.h"
-
+#include "pthread_pool.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 void my_process(void* args){
 	tp_work_arg *arg=(tp_work_arg*)args;
 	int val=*(int*)arg->args;
 	printf("hello :%d\n",val);
-	sleep(3);
+	sleep(1);
 	printf("%d exit!!\n",val);
 }
 
